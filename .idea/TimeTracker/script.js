@@ -11,8 +11,21 @@ function apiListTasks() {
 }
 
 function apiListOperationsForTask(taskId) {
-    return fetch(apihost + "/api/tasks/" + taskId + "/opearions", {headers: {Authorization: apiKey} }).then(function (resp) {
+    return fetch(apihost + "/api/tasks/" + taskId + "/operations", {headers: {Authorization: apiKey} }).then(function (resp) {
         if (!resp.ok) {
+            alert("Error! Open devtools network and search for reasons");
+        }
+        return resp.json();
+    })
+}
+
+function apiCreateTask(title, description) {
+    return fetch(apihost + '/api/tasks', {
+        headers: {Authorization: apiKey, 'Content-Type': 'application/json'},
+        body: JSON.stringify({ title: title, description: description, status: 'open'}),
+        method: 'POST'
+    }).then(function (resp) {
+        if (!resp.ok){
             alert("Error! Open devtools network and search for reasons");
         }
         return resp.json();
@@ -135,20 +148,24 @@ function formatTime(timeSpent){
     const hours = Math.floor(timeSpent / 60);
     const minutes = timeSpent % 60;
     if (hours > 0) {
-        returnhours = 'h ' + minutes + 'm';
+        return hours + 'h ' + minutes + 'm';
     } else {
         return minutes + 'm';
     }
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-    apiListTasks().then(
-        function (response) {
+    apiListTasks().then(function (response) {
             response.data.forEach(
                 function (task) {
                     renderTask(task.id, task.title, task.description, task.status);
-                }
-            );
-        }
-    )
-})
+                });
+        });
+    document.querySelector('.js-task-adding-form').addEventListener('submit', function (event) {
+        event.preventDefault();
+        apiCreateTask(event.target.elements.title.value, event.target.elements.description.value)
+            .then(function (response) {
+                renderTask(response.data.id, response.data.title, response.data.description, response.data.status);
+            });
+    });
+});
