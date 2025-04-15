@@ -44,6 +44,20 @@ function apiDeleteTask(taskId) {
     })
 }
 
+function apiCreateOperationForTask(taskId,description) {
+    return fetch(apihost + "/api/tasks/" + taskId + "/operations", {
+        headers: {Authorization: apiKey, 'Content-Type': 'application/json'},
+        body: JSON.stringify({description: description, timeSpent: 0 }),
+        method: 'POST'
+    }).then(function (resp) {
+        if (!resp.ok){
+            alert("Error! Open devtools network and search for reasons");
+        }
+        return resp.json();
+    })
+}
+
+
 function renderTask(taskId, title, description, status) {
     const section = document.createElement("section");
     section.className = 'card mt-5 shadow-sm';
@@ -79,7 +93,7 @@ function renderTask(taskId, title, description, status) {
     deleteButton.className = 'btn btn-outline-danger btn-sm ml-2';
     deleteButton.innerText = 'Delete';
     headerRightDiv.appendChild(deleteButton);
-    deleteButton,addEventListener("click", function () {
+    deleteButton.addEventListener("click", function () {
         apiDeleteTask(taskId).then(function () {
             section.parentElement.removeChild(section);
         })
@@ -121,7 +135,15 @@ function renderTask(taskId, title, description, status) {
             const addButton = document.createElement('button');
             addButton.className = 'btn btn-info';
             addButton.innerText = 'Add';
-            inputGroupAppend.appendChild(addButton)
+            inputGroupAppend.appendChild(addButton);
+
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                apiCreateOperationForTask(taskId, descriptionInput.value)
+                    .then(function (response) {
+                        renderOperation(ul,status,response.data.id, response.data.description, response.data.timeSpent);
+                    });
+            });
         }
 }
 
