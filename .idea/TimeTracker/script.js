@@ -11,13 +11,52 @@ function apiListTasks() {
 }
 
 function apiListOperationsForTask(taskId) {
-    return fetch(apihost + "/api/tasks/" + taskId + "/opearions", {headers: {Authorization: apiKey} }).then(function (resp) {
+    return fetch(apihost + "/api/tasks/" + taskId + "/operations", {headers: {Authorization: apiKey} }).then(function (resp) {
         if (!resp.ok) {
             alert("Error! Open devtools network and search for reasons");
         }
         return resp.json();
     })
 }
+
+function apiCreateTask(title, description) {
+    return fetch(apihost + '/api/tasks', {
+        headers: {Authorization: apiKey, 'Content-Type': 'application/json'},
+        body: JSON.stringify({ title: title, description: description, status: 'open'}),
+        method: 'POST'
+    }).then(function (resp) {
+        if (!resp.ok){
+            alert("Error! Open devtools network and search for reasons");
+        }
+        return resp.json();
+    })
+}
+
+function apiDeleteTask(taskId) {
+    return fetch(apihost + "/api/tasks/" + taskId, {
+        headers:{Authorization:apiKey},
+        method: 'DELETE'
+        }).then(function (resp) {
+        if (!resp.ok) {
+            alert("Error! Open devtools network and search for reasons");
+        }
+        return resp.json();
+    })
+}
+
+function apiCreateOperationForTask(taskId,description) {
+    return fetch(apihost + "/api/tasks/" + taskId + "/operations", {
+        headers: {Authorization: apiKey, 'Content-Type': 'application/json'},
+        body: JSON.stringify({description: description, timeSpent: 0 }),
+        method: 'POST'
+    }).then(function (resp) {
+        if (!resp.ok){
+            alert("Error! Open devtools network and search for reasons");
+        }
+        return resp.json();
+    })
+}
+
 
 function renderTask(taskId, title, description, status) {
     const section = document.createElement("section");
@@ -54,6 +93,11 @@ function renderTask(taskId, title, description, status) {
     deleteButton.className = 'btn btn-outline-danger btn-sm ml-2';
     deleteButton.innerText = 'Delete';
     headerRightDiv.appendChild(deleteButton);
+    deleteButton.addEventListener("click", function () {
+        apiDeleteTask(taskId).then(function () {
+            section.parentElement.removeChild(section);
+        })
+    })
 
     const ul = document.createElement('ul');
     ul.className = 'list-group list-group-flush';
@@ -91,7 +135,15 @@ function renderTask(taskId, title, description, status) {
             const addButton = document.createElement('button');
             addButton.className = 'btn btn-info';
             addButton.innerText = 'Add';
-            inputGroupAppend.appendChild(addButton)
+            inputGroupAppend.appendChild(addButton);
+
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                apiCreateOperationForTask(taskId, descriptionInput.value)
+                    .then(function (response) {
+                        renderOperation(ul,status,response.data.id, response.data.description, response.data.timeSpent);
+                    });
+            });
         }
 }
 
@@ -135,20 +187,24 @@ function formatTime(timeSpent){
     const hours = Math.floor(timeSpent / 60);
     const minutes = timeSpent % 60;
     if (hours > 0) {
-        returnhours = 'h ' + minutes + 'm';
+        return hours + 'h ' + minutes + 'm';
     } else {
         return minutes + 'm';
     }
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-    apiListTasks().then(
-        function (response) {
+    apiListTasks().then(function (response) {
             response.data.forEach(
                 function (task) {
                     renderTask(task.id, task.title, task.description, task.status);
-                }
-            );
-        }
-    )
-})
+                });
+        });
+    document.querySelector('.js-task-adding-form').addEventListener('submit', function (event) {
+        event.preventDefault();
+        apiCreateTask(event.target.elements.title.value, event.target.elements.description.value)
+            .then(function (response) {
+                renderTask(response.data.id, response.data.title, response.data.description, response.data.status);
+            });
+    });
+});
